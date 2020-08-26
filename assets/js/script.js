@@ -13,6 +13,8 @@ var createTask = function(taskText, taskDate, taskList) {
   // append span and p element to parent li
   taskLi.append(taskSpan, taskP);
 
+  // To check due date
+  auditTask(taskLi);
 
   // append to ul list on the page
   $("#list-" + taskList).append(taskLi);
@@ -102,12 +104,22 @@ $(".list-group").on("click", "span", function(){
   // To swap out Elements
   $(this).replaceWith(dateInput);
 
+  // To enable jQuery UI DatePicker
+  dateInput.datepicker({
+    minDate: 0,
+    onClose: function(){
+      // When the calender is closed, force a change event on dateInput, so
+      // if nothing is picked the date reverts back to what it was
+      $(this).trigger("change");
+    }
+  });
+
   // To automatically focus on a new element
   dateInput.trigger("focus");
 });
 
 // When the value of Due Date is changed
-$(".list-group").on("blur", "input[type='text']", function() {
+$(".list-group").on("change", "input[type='text']", function() {
   // To get current text
   var date = $(this)
   .val()
@@ -135,8 +147,29 @@ $(".list-group").on("blur", "input[type='text']", function() {
 
   // To replace input with span element
   $(this).replaceWith(taskSpan);
+
+  // To pass the <li> element into auditTask() to check the new date
+  auditTask($(taskSpan).closest(".list-group-item"));
 });
 
+var auditTask = function(taskEl) {
+  // To get date from the task Element
+  var date = $(taskEl).find("span").text().trim();
+
+  // To convert moment object at 5:00pm
+  var time = moment(date, "L").set("hour", 19);
+
+  // To remove any old classes from the element
+  $(taskEl).removeClass("list-group-item-warning list-group-item-danger");
+
+  // To apply new classes if task is near/over the due date
+  if (moment().isAfter(time)) {
+    $(taskEl).addClass("list-group-item-danger");
+  }
+  else if (Math.abs(moment().diff(time, "days")) <= 2) {
+    $(taskEl).addClass("list-group-item-warning");
+  }
+};
 
 // modal was triggered
 $("#task-form-modal").on("show.bs.modal", function() {
@@ -178,16 +211,12 @@ $(".card .list-group").sortable({
   tolerance: "pointer",
   helper: "clone",
   activate: function(event) {
-    console.log("activate", this);
   },
   deactivate: function(event) {
-    console.log("deactivate", this);
   },
   over: function(event) {
-    console.log("over", event.target);
   },
   out: function(event) {
-    console.log("out", event.target);
   },
   update: function(event) {
     // array to store the task data in
@@ -230,10 +259,8 @@ $("#trash").droppable({
     ui.draggable.remove();
   },
   over: function(event, ui) {
-    console.log("over");
   },
   out: function(event, ui) {
-    console.log("out");
   }
 });
 
